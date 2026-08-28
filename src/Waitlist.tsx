@@ -9,6 +9,12 @@ declare const process: { env?: Record<string, string | undefined> } | undefined;
 
 export type WaitlistStatus = 'idle' | 'submitting' | 'success' | 'error';
 
+/**
+ * What the form collects. 'either' shows one field and classifies what was
+ * typed — nothing but an email address contains '@'.
+ */
+export type WaitlistMode = 'phone' | 'email' | 'either';
+
 export type WaitlistClassNames = {
   root?: string;
   form?: string;
@@ -22,6 +28,8 @@ export type WaitlistClassNames = {
 export type WaitlistProps = {
   /** Which waitlist this signup belongs to, e.g. "delivery-assistant". */
   project: string;
+  /** Collect a phone number, an email address, or accept either. */
+  mode?: WaitlistMode;
   /**
    * Collector endpoint. Falls back to NEXT_PUBLIC_WAITLIST_ENDPOINT, then to
    * the same-origin `/api/signup` for sites that host the collector themselves.
@@ -41,6 +49,8 @@ export type WaitlistProps = {
 };
 
 const ERRORS: Record<string, string> = {
+  invalid_email: 'That doesn’t look like a valid email address.',
+  contact_required: 'Please enter something first.',
   invalid_phone: 'That doesn’t look like a valid phone number.',
   rate_limited: 'Too many attempts. Try again in a bit.',
   origin_not_allowed: 'This site isn’t authorised to submit. Check the collector allowlist.',
@@ -48,9 +58,10 @@ const ERRORS: Record<string, string> = {
 
 export function Waitlist({
   project,
+  mode = 'phone',
   endpoint,
   country = 'IN',
-  placeholder = 'Your phone number',
+  placeholder,
   buttonLabel = 'Join the waitlist',
   submittingLabel = 'Joining…',
   successMessage = 'You’re on the list. We’ll text you at launch.',
@@ -59,11 +70,26 @@ export function Waitlist({
   onSuccess,
   onError,
 }: WaitlistProps) {
-  const [phone, setPhone] = React.useState('');
+  const [value, setValue] = React.useState('');
   const [hp, setHp] = React.useState('');
   const [status, setStatus] = React.useState<WaitlistStatus>('idle');
   const [message, setMessage] = React.useState('');
   const mountedAt = React.useRef(Date.now());
+
+  const kind = mode;
+  const field =
+    kind === 'email'
+      ? { type: 'email', inputMode: 'email' as const, autoComplete: 'email', name: 'email' }
+      : kind === 'phone'
+        ? { type: 'tel', inputMode: 'tel' as const, autoComplete: 'tel', name: 'phone' }
+        : { type: 'text', inputMode: 'text' as const, autoComplete: 'on', name: 'contact' };
+  const hint =
+    placeholder ??
+    (kind === 'email'
+      ? 'Your email address'
+      : kind === 'phone'
+        ? 'Your phone number'
+        : 'Email or phone number');
 
   const url =
     endpoint ??
@@ -75,9 +101,10 @@ export function Waitlist({
     if (status === 'submitting') return;
 
     // Cheap client-side check only; the server is the authority on validity.
-    if (phone.replace(/\D/g, '').length < 6) {
+    const looksEmail = kind === 'email' || (kind === 'either' && value.includes('@'));
+    if (looksEmail ? !/^[^\s@]+@[^\s@.]+\.[^\s@]+$/.test(value.trim()) : value.replace(/\D/g, '').length < 6) {
       setStatus('error');
-      setMessage(ERRORS.invalid_phone);
+      setMessage(looksEmail ? ERRORS.invalid_email : ERRORS.invalid_phone);
       return;
     }
 
@@ -90,7 +117,9 @@ export function Waitlist({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           project,
-          phone,
+          // Named field when we know the kind, bare `contact` when the server
+          // should classify it.
+          ...(kind === 'either' ? { contact: value } : { [kind]: value }),
           country,
           hp,
           elapsedMs: Date.now() - mountedAt.current,
@@ -114,7 +143,7 @@ export function Waitlist({
 
       setStatus('success');
       setMessage(successMessage);
-      setPhone('');
+      setValue('');
       onSuccess?.({ duplicate: Boolean(data.duplicate) });
     } catch {
       setStatus('error');
@@ -141,18 +170,18 @@ export function Waitlist({
       <form className={classNames.form} onSubmit={handleSubmit} data-waitlist="form" noValidate>
         <div className={classNames.field} data-waitlist="field">
           <input
-            type="tel"
-            name="phone"
-            inputMode="tel"
-            autoComplete="tel"
+            type={field.type}
+            name={field.name}
+            inputMode={field.inputMode}
+            autoComplete={field.autoComplete}
             className={classNames.input}
             data-waitlist="input"
-            placeholder={placeholder}
-            aria-label={placeholder}
+            placeholder={hint}
+            aria-label={hint}
             aria-invalid={status === 'error'}
-            value={phone}
+            value={value}
             onChange={(e) => {
-              setPhone(e.target.value);
+              setValue(e.target.value);
               if (status === 'error') setStatus('idle');
             }}
             required

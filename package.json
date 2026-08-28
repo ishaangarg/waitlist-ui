@@ -1,7 +1,7 @@
 {
   "name": "@ishaangarg94/waitlist-ui",
-  "version": "0.1.2",
-  "description": "Phone-number waitlist form that posts to a shared collector. Unstyled.",
+  "version": "0.2.0",
+  "description": "Waitlist form that collects a phone number or an email address and posts to a shared collector. Unstyled.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -32,5 +32,21 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ishaangarg/waitlist-ui.git"
+  },
+  "homepage": "https://github.com/ishaangarg/waitlist-ui#readme",
+  "bugs": {
+    "url": "https://github.com/ishaangarg/waitlist-ui/issues"
+  },
+  "keywords": [
+    "waitlist",
+    "signup",
+    "email",
+    "phone",
+    "react",
+    "nextjs"
+  ]
 }
