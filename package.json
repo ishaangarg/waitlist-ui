@@ -1,6 +1,6 @@
 {
   "name": "@ishaangarg94/waitlist-ui",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Phone-number waitlist form that posts to a shared collector. Unstyled.",
   "license": "MIT",
   "type": "module",
@@ -12,9 +12,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
   "scripts": {
     "build": "tsup"
